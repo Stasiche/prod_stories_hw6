@@ -1,0 +1,2 @@
+Levi 02:42<00:00 {'top_1_accuracy': 0.492, 'top_3_accuracy': 0.625, 'top_5_accuracy': 0.667, 'mean_place_in_top': 7.285}
+Ngrams 01:07<00:00 {'top_1_accuracy': 0.558, 'top_3_accuracy': 0.686, 'top_5_accuracy': 0.707, 'mean_place_in_top': 1.934}
