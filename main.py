@@ -1,9 +1,13 @@
 from src.spellChecker import SpellChecker
+from src.preSuggesters import BasePreSuggester, LevenshteinPreSuggester, NGrammsPreSuggester
 
-sc = SpellChecker()
+sc = SpellChecker(NGrammsPreSuggester)
 test_words = ['summer', 'sammer', 'sumer', 'summe', 'smmer', 'samer']
-gt = 'summer'
-for test_word in test_words:
-    suggestions = sc.suggest(test_word, True)
-    print(f'Suggests for "{test_word}": {sc.suggest(test_word, True)[:10]}. '
-          f'{suggestions.index(gt) + 1 if gt in suggestions else None}')
+for tw in test_words:
+    sc(tw)
+    print()
+
+
+# from src.preSuggesters import LevenshteinPreSuggester
+# from spylls.hunspell import Dictionary
+# LevenshteinPreSuggester(Dictionary.from_files('en_US'), 10, 6).get_suggestions('sammer')

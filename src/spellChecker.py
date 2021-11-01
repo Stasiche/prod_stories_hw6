@@ -1,34 +1,52 @@
 from spylls.hunspell import Dictionary
 from typing import List
 from pyphonetics import RefinedSoundex
-import Levenshtein as lev
-from textdistance import needleman_wunsch
+from textdistance import needleman_wunsch, damerau_levenshtein
 import numpy as np
-from scipy.stats import hmean
 import csv
 
 
 class SpellChecker:
-    def __init__(self, dict_name: str = 'en_US', freqs_path: str = 'unigram_freq.csv'):
+    def __init__(self, presuggester, max_suggestions=10, dict_name: str = 'en_US',
+                 freqs_path: str = 'unigram_freq.csv'):
+        self.max_suggestions = max_suggestions
         self.dict = Dictionary.from_files(dict_name)
         self.rs = RefinedSoundex()
         self.words_freqs = self.get_words_freqs(freqs_path)
+        self.presuggester = presuggester(self.dict, 1000)
 
-    def __calc_features(self, suggest: str, misspelling: str) -> List[float]:
+    def __call__(self, word):
+        if self.lookup(word):
+            print(f'{word} is okay')
+        else:
+            print(f'{word} is not okay. Maybe you mean one of these words?')
+            suggestions = self.suggest(word, print_features=False)
+            for suggestion in suggestions[:self.max_suggestions]:
+                print(f'  -{suggestion}')
+
+    def __calc_features(self, suggestion: str, misspelling: str) -> List[float]:
         res = []
-        for dist_func in [lev.distance, self.rs.distance, needleman_wunsch]:
-            res.append(dist_func(suggest, misspelling) + 1)
+        for dist_func in [damerau_levenshtein.normalized_distance, self.rs.distance,
+                          needleman_wunsch.normalized_distance]:
+            res.append(dist_func(suggestion, misspelling))
 
-        res.append(1 / self.words_freqs.get(suggest, 1e-10))
+        res.append(1 - self.words_freqs.get(suggestion, 0))
         return res
 
+    def lookup(self, word):
+        return self.dict.lookup(word)
+
     def suggest(self, misspelling: str, print_features: bool = False) -> List[str]:
-        ngram_suggestions = self.dict.suggester.ngram_suggestions(misspelling, set())
-        suggestions = np.array([el for el in ngram_suggestions if self.__filter(el)])
+        # ngram_suggestions = self.dict.suggester.ngram_suggestions(misspelling, set())
+        # suggestions = np.unique([el.lower() for el in ngram_suggestions])
+        suggestions = self.presuggester.get_suggestions(misspelling)
+        if not len(suggestions):
+            return list()
+
         features = np.array([self.__calc_features(suggestion, misspelling) for suggestion in suggestions])
         indxs = self.__calc_ranks(features)
         if print_features:
-            [print(sug, feat, hmean(feat)) for sug, feat in zip(ngram_suggestions, features)]
+            [print(sug, feat) for sug, feat in zip(suggestions[indxs], features[indxs])]
         return suggestions[indxs].tolist()
 
     @staticmethod
@@ -48,9 +66,5 @@ class SpellChecker:
         return words_freqs
 
     @staticmethod
-    def __filter(suggestion: str) -> bool:
-        return suggestion[0].islower()
-
-    @staticmethod
     def __calc_ranks(features: np.ndarray) -> np.ndarray:
-        return np.argsort(hmean(features, axis=1))
+        return np.argsort(np.mean(features, axis=1))
