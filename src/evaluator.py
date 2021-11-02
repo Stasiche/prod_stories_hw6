@@ -18,6 +18,7 @@ class Evaluator:
             res[f'top_{k}_accuracy'] = int(gt in suggestions[:k])
 
         res['mean_place_in_top'] = suggestions.index(gt) + 1 if gt in suggestions else None
+        res['mrr'] = 1 / (suggestions.index(gt) + 1) if gt in suggestions else 0
         return res
 
     def evaluate(self, sc: SpellChecker) -> Dict[str, float]:
@@ -43,6 +44,8 @@ class Evaluator:
             res[f'top_{k}_accuracy'] /= len(self.data)
 
         res['mean_place_in_top'] = res['mean_place_in_top']/place_in_top_cnt if place_in_top_cnt != 0 else None
+        res['mrr'] /= len(self.data)
+
         for key in res.keys():
             res[key] = np.round(res[key], 3)
 
