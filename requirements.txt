@@ -1,0 +1,7 @@
+numpy==1.21.3
+pyphonetics==0.5.3
+python_Levenshtein==0.12.2
+spylls==0.1.6
+tabulate==0.8.9
+textdistance==4.2.2
+tqdm==4.62.3
